@@ -1776,7 +1776,7 @@ tls_session_soft_reset(struct tls_multi *tls_multi)
 static bool
 write_empty_string(struct buffer *buf)
 {
-    if (!buf_write_u16(buf, 0))
+    if (!buf_write_u32(buf, 0))
     {
         return false;
     }
@@ -1787,12 +1787,12 @@ static bool
 write_string(struct buffer *buf, const char *str, const int maxlen)
 {
     const size_t len = strlen(str) + 1;
-    const size_t real_maxlen = (maxlen >= 0 && maxlen <= UINT16_MAX) ? (size_t)maxlen : UINT16_MAX;
+    const size_t real_maxlen = (maxlen >= 0) ? (size_t)maxlen : SIZE_MAX;
     if (len > real_maxlen)
     {
         return false;
     }
-    if (!buf_write_u16(buf, (uint16_t)len))
+    if (!buf_write_u32(buf, (uint32_t)len))
     {
         return false;
     }
@@ -2158,6 +2158,10 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
          * are a P2P client running in tls-server mode */
         p2p_mode_ncp(multi, session);
     }
+
+    // Write key length in the first 4 octets of the buffer.
+    uint32_t length = BLEN(buf);
+    memcpy(buf->data, &length, sizeof(length));
 
     return true;
 
